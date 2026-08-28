@@ -1,26 +1,27 @@
-from config.settings import EXIGENCIA_APROBACION, NOTA_MINIMA, NOTA_APROBACION, NOTA_MAXIMA
+import sys
+from pathlib import Path
+
+root_path = Path(__file__).resolve().parent.parent
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
+
+from config.settings import EXIGENCIA_APROBACION, PUNTAJE_MINIMO, PUNTAJE_MAXIMO
 
 class GradingService:
     @staticmethod
-    def calculate_unach_grade(score: float) -> float:
-        """
-        Calcula la nota oficial chilena (1.0 - 7.0) a partir de un puntaje de 1 a 100.
-        Puntaje 51.0 representa la exigencia mínima para nota 4.0.
-        """
+    def evaluate_score(score: float) -> dict:
         try:
             p = float(score)
-            if p <= 1.0:
-                return NOTA_MINIMA
-            if p >= 100.0:
-                return NOTA_MAXIMA
-            
-            if p < EXIGENCIA_APROBACION:
-                # Tramo reprobatorio: 1 a 50 pts -> 1.0 a 3.9
-                grade = NOTA_MINIMA + (p / EXIGENCIA_APROBACION) * (3.9 - NOTA_MINIMA)
-            else:
-                # Tramo aprobatorio: 51 a 100 pts -> 4.0 a 7.0
-                grade = NOTA_APROBACION + ((p - EXIGENCIA_APROBACION) / (100.0 - EXIGENCIA_APROBACION)) * (NOTA_MAXIMA - NOTA_APROBACION)
-            
-            return round(grade, 1)
+            p = max(PUNTAJE_MINIMO, min(PUNTAJE_MAXIMO, p))
+            approved = p >= EXIGENCIA_APROBACION
+            return {
+                "score": round(p, 1),
+                "approved": approved,
+                "status": "Aprobado" if approved else "Reprobado"
+            }
         except (ValueError, TypeError):
-            return NOTA_MINIMA
+            return {"score": PUNTAJE_MINIMO, "approved": False, "status": "Reprobado"}
+
+    @staticmethod
+    def calculate_unach_grade(score: float) -> dict:
+        return GradingService.evaluate_score(score)
